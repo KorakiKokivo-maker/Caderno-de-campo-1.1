@@ -48,5 +48,24 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+ <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyBFuibQMsk2Zg9iWhhLEqDxhfdRzvFraLM",
+    authDomain: "caderno-de-campo-5j5s6v1j.firebaseapp.com",
+    projectId: "caderno-de-campo-5j5s6v1j",
+    storageBucket: "caderno-de-campo-5j5s6v1j.firebasestorage.app",
+    messagingSenderId: "954010737291",
+    appId: "1:954010737291:web:d808dbf8b905efee20528e"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
   </body>
 </html>
