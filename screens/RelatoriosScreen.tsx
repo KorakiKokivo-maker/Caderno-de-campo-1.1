@@ -12,7 +12,7 @@ import {
     getBenfeitoriasByUsuario,
     // FIX: Added 'getPropriedadesByUsuario' to fetch properties for cost calculation.
     getPropriedadesByUsuario
-} from '../services/database';
+} from '../database';
 import { 
     calculateTotalReceita, 
     calculateTotalCustosVariaveis,
