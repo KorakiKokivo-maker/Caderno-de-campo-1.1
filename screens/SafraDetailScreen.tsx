@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Safra, Usuario, Propriedade } from '../types';
-import { getSafraById, updateSafra, getPropriedadesByUsuario, inativateSafra } from '../services/database';
+import { getSafraById, updateSafra, getPropriedadesByUsuario, inativateSafra } from '../database';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { formatDate } from '../utils/calculations';
 import Icon from '../components/Icon';
