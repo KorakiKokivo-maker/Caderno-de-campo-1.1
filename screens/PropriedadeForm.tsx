@@ -1,7 +1,7 @@
 // screens/PropriedadeForm.tsx
 import React, { useState } from 'react';
 import { Usuario, Propriedade } from '../types';
-import { addPropriedade, updatePropriedade } from '../services/database';
+import { addPropriedade, updatePropriedade } from '../database';
 import FormModal from '../components/FormModal';
 import { formatDate } from '../utils/calculations';
 
