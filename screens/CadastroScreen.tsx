@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Usuario, PerfilUsuario } from '../types';
-import { addUser, getUsers } from '../services/database';
+import { addUser, getUsers } from '../database';
 import Icon from '../components/Icon';
 
 interface CadastroScreenProps {
