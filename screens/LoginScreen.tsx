@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Usuario } from '../types';
 import { authenticate } from '../services/database';
 import Icon from '../components/Icon';
-import logo from '../assets/icon.png'; // ✅ importando o logo corretamente
 
 interface LoginScreenProps {
   onLogin: (user: Usuario, remember: boolean) => void;
@@ -33,9 +32,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToCadastro
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-epagri-dark">
       <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
         <div className="text-center">
-          {/* Logo */}
-          <img src={logo} alt="Logo Caderno de Campo" className="w-24 h-24 mx-auto" />
-
+          {/* Substituição do ícone aqui ↓ */}
+          <img
+            src="/assets/ícone cc (2).png"
+            alt="Logo Caderno de Campo"
+            className="w-24 h-24 mx-auto"
+          />
           <h2 className="mt-4 text-3xl font-extrabold text-gray-900 dark:text-white">
             Caderno de Campo
           </h2>
@@ -47,7 +49,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToCadastro
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
-              <label htmlFor="username" className="sr-only">Nome de usuário</label>
+              <label htmlFor="username" className="sr-only">
+                Nome de usuário
+              </label>
               <input
                 id="username"
                 name="username"
@@ -62,7 +66,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToCadastro
             </div>
 
             <div>
-              <label htmlFor="password" className="sr-only">Senha</label>
+              <label htmlFor="password" className="sr-only">
+                Senha
+              </label>
               <input
                 id="password"
                 name="password"
@@ -87,7 +93,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToCadastro
                 onChange={(e) => setRemember(e.target.checked)}
                 className="h-4 w-4 text-epagri-red focus:ring-red-500 border-gray-300 rounded"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+              <label
+                htmlFor="remember-me"
+                className="ml-2 block text-sm text-gray-900 dark:text-gray-300"
+              >
                 Lembrar login
               </label>
             </div>
