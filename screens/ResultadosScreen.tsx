@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Safra, Usuario } from '../types';
 // FIX: Corrected imports to use existing calculation functions and added imports for fixed cost calculations.
-import { getSafrasByUsuario, getOperacoesBySafra, getCustosVariaveisBySafra, getColheitasBySafra, getCustosFixosByUsuario, getMaquinariosByUsuario, getBenfeitoriasByUsuario, getPropriedadesByUsuario } from '../services/database';
+import { getSafrasByUsuario, getOperacoesBySafra, getCustosVariaveisBySafra, getColheitasBySafra, getCustosFixosByUsuario, getMaquinariosByUsuario, getBenfeitoriasByUsuario, getPropriedadesByUsuario } from '../database';
 import {
   calculateTotalReceita,
   calculateTotalCustosVariaveis,
