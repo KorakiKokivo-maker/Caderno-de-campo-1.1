@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Usuario } from '../types';
 import { authenticate } from '../services/database';
 import Icon from '../components/Icon';
+import logo from '../assets/icon.png'; // ✅ importando o logo corretamente
 
 interface LoginScreenProps {
   onLogin: (user: Usuario, remember: boolean) => void;
@@ -32,7 +33,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToCadastro
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-epagri-dark">
       <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
         <div className="text-center">
-            <img src="/icon.png" alt="Logo Caderno de Campo" className="w-24 h-24 mx-auto" />
+          {/* Logo */}
+          <img src={logo} alt="Logo Caderno de Campo" className="w-24 h-24 mx-auto" />
+
           <h2 className="mt-4 text-3xl font-extrabold text-gray-900 dark:text-white">
             Caderno de Campo
           </h2>
@@ -40,6 +43,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToCadastro
             Acesse sua conta para gerenciar suas safras.
           </p>
         </div>
+
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
@@ -56,6 +60,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToCadastro
                 onChange={(e) => setUsername(e.target.value)}
               />
             </div>
+
             <div>
               <label htmlFor="password" className="sr-only">Senha</label>
               <input
@@ -74,16 +79,29 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToCadastro
 
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <input id="remember-me" name="remember-me" type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-4 w-4 text-epagri-red focus:ring-red-500 border-gray-300 rounded" />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">Lembrar login</label>
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="h-4 w-4 text-epagri-red focus:ring-red-500 border-gray-300 rounded"
+              />
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+                Lembrar login
+              </label>
             </div>
+
             <div className="text-sm">
-              <button type="button" onClick={onNavigateToCadastro} className="font-medium text-epagri-red hover:text-red-700">
+              <button
+                type="button"
+                onClick={onNavigateToCadastro}
+                className="font-medium text-epagri-red hover:text-red-700"
+              >
                 Cadastrar Novo Usuário
               </button>
             </div>
           </div>
-
 
           {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
