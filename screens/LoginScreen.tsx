@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Usuario } from '../types';
-import { authenticate } from '../services/database';
+import { authenticate } from '../database';
 import Icon from '../components/Icon';
 
 interface LoginScreenProps {
