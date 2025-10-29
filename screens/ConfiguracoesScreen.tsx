@@ -2,31 +2,35 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Usuario, Propriedade } from '../types';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { getDieselPrice, setDieselPrice, getPropriedadesByUsuario, addPropriedade, updateUser } from '../services/database';
-
+import { getPropriedadesByUsuario, addPropriedade, updatePropriedade, deletePropriedade, updateUser } from '../services/database';
 
 const PropriedadeForm: React.FC<{
     currentUser: Usuario;
+    initialData?: Omit<Propriedade, 'id'>;
     onClose: () => void;
     onSave: () => void;
-}> = ({ currentUser, onClose, onSave }) => {
+    propriedadeId?: number;
+}> = ({ currentUser, initialData, onClose, onSave, propriedadeId }) => {
     const [formData, setFormData] = useState<Omit<Propriedade, 'id'>>({
         usuario_id: currentUser.id,
-        nome: '',
-        localizacao: '',
-        latitude: undefined,
-        longitude: undefined,
-        valor_financiado: undefined,
-        num_parcelas: undefined,
-        parcelas_pagas: undefined,
-        data_inicio_pagamento: undefined,
+        nome: initialData?.nome || '',
+        localizacao: initialData?.localizacao || '',
+        latitude: initialData?.latitude,
+        longitude: initialData?.longitude,
+        valor_financiado: initialData?.valor_financiado,
+        num_parcelas: initialData?.num_parcelas,
+        parcelas_pagas: initialData?.parcelas_pagas,
+        data_inicio_pagamento: initialData?.data_inicio_pagamento,
     });
-    
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         const isNumber = ['latitude', 'longitude', 'valor_financiado', 'num_parcelas', 'parcelas_pagas'].includes(name);
-        setFormData(prev => ({...prev, [name]: isNumber ? (value ? parseFloat(value) : undefined) : value }));
-    }
+        setFormData(prev => ({
+            ...prev,
+            [name]: isNumber ? (value ? parseFloat(value) : undefined) : value
+        }));
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,14 +38,18 @@ const PropriedadeForm: React.FC<{
             alert("Por favor, preencha os campos de nome e localização.");
             return;
         }
-        addPropriedade(formData);
+        if(propriedadeId !== undefined) {
+            updatePropriedade(propriedadeId, formData);
+        } else {
+            addPropriedade(formData);
+        }
         onSave();
-    }
-    
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg m-4 max-h-[90vh] overflow-y-auto">
-                <h2 className="text-2xl font-bold mb-4">Nova Propriedade</h2>
+                <h2 className="text-2xl font-bold mb-4">{propriedadeId !== undefined ? 'Editar Propriedade' : 'Nova Propriedade'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <input type="text" name="nome" placeholder="Nome da Propriedade" value={formData.nome} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
                     <input type="text" name="localizacao" placeholder="Localização (Cidade, UF)" value={formData.localizacao} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
@@ -81,9 +89,9 @@ const ConfiguracoesScreen: React.FC<{
   showToast: (message: string, type?: 'success' | 'error') => void;
   onUpdateUser: (user: Usuario) => void;
 }> = ({ currentUser, onNavigateBack, theme, setTheme, showToast, onUpdateUser }) => {
-  const [dieselPrice, setLocalDieselPrice] = useState(0);
   const [propriedades, setPropriedades] = useState<Propriedade[]>([]);
-  const [isPropriedadeFormOpen, setIsPropriedadeFormOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingPropriedade, setEditingPropriedade] = useState<Propriedade | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refreshPropriedades = () => {
@@ -91,19 +99,27 @@ const ConfiguracoesScreen: React.FC<{
   }
 
   useEffect(() => {
-    setLocalDieselPrice(getDieselPrice());
     refreshPropriedades();
   }, [currentUser]);
 
-  const handleSaveDieselPrice = () => {
-    setDieselPrice(dieselPrice);
-    showToast("Preço do diesel atualizado!", "success");
+  const handleSavePropriedade = () => {
+    showToast(editingPropriedade ? "Propriedade atualizada com sucesso!" : "Propriedade adicionada com sucesso!", "success");
+    setIsFormOpen(false);
+    setEditingPropriedade(null);
+    refreshPropriedades();
   }
 
-  const handleSavePropriedade = () => {
-    showToast("Propriedade adicionada com sucesso!", "success");
-    setIsPropriedadeFormOpen(false);
-    refreshPropriedades();
+  const handleEdit = (p: Propriedade) => {
+    setEditingPropriedade(p);
+    setIsFormOpen(true);
+  }
+
+  const handleDelete = (p: Propriedade) => {
+    if(window.confirm(`Deseja realmente excluir a propriedade "${p.nome}"?`)) {
+        deletePropriedade(p.id);
+        showToast("Propriedade excluída com sucesso!", "success");
+        refreshPropriedades();
+    }
   }
 
   const handleProfilePicClick = () => {
@@ -128,7 +144,16 @@ const ConfiguracoesScreen: React.FC<{
 
   return (
     <ScreenWrapper title="Configurações" onNavigateBack={onNavigateBack}>
-      {isPropriedadeFormOpen && <PropriedadeForm currentUser={currentUser} onClose={() => setIsPropriedadeFormOpen(false)} onSave={handleSavePropriedade} />}
+      {isFormOpen && (
+        <PropriedadeForm 
+            currentUser={currentUser} 
+            initialData={editingPropriedade || undefined} 
+            onClose={() => { setIsFormOpen(false); setEditingPropriedade(null); }} 
+            onSave={handleSavePropriedade}
+            propriedadeId={editingPropriedade?.id}
+        />
+      )}
+
       <div className="space-y-8">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-bold mb-6">Informações do Usuário</h2>
@@ -149,57 +174,4 @@ const ConfiguracoesScreen: React.FC<{
                 />
               </div>
             <div className="space-y-2">
-                <div><label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Nome</label><p className="text-lg font-semibold">{currentUser.nome}</p></div>
-                <div><label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Nome de Usuário</label><p className="text-lg">{currentUser.nome_de_usuario}</p></div>
-                <div><label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Perfil</label><p className="text-lg">{currentUser.perfil}</p></div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4">Minhas Propriedades</h2>
-          <ul className="divide-y dark:divide-gray-700 mb-4">
-            {propriedades.map(p => (
-              <li key={p.id} className="py-2">
-                <p className="font-semibold">{p.nome}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{p.localizacao}</p>
-                 {p.latitude && p.longitude && <p className="text-xs text-gray-400">Lat: {p.latitude}, Lon: {p.longitude}</p>}
-              </li>
-            ))}
-          </ul>
-          <button onClick={() => setIsPropriedadeFormOpen(true)} className="flex items-center gap-2 bg-epagri-red text-white px-4 py-2 rounded-md font-semibold hover:bg-red-700">
-            <Icon name="plus" className="w-5 h-5"/> Adicionar Propriedade
-          </button>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-bold mb-4">Parâmetros Gerais</h3>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="diesel" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Preço atual do diesel (R$/L)</label>
-              <div className="mt-1 flex gap-2">
-                <input type="number" step="0.01" id="diesel" value={dieselPrice} onChange={e => setLocalDieselPrice(parseFloat(e.target.value))} className="block w-full max-w-xs rounded-md dark:bg-gray-700" />
-                <button onClick={handleSaveDieselPrice} className="px-4 py-2 bg-epagri-red text-white rounded-md">Salvar</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-             <h3 className="text-xl font-bold mb-4">Tema do Aplicativo</h3>
-             <div className="flex items-center gap-4">
-                <button onClick={() => setTheme('light')} className={`flex items-center gap-2 p-2 rounded-md border-2 ${theme === 'light' ? 'border-epagri-red bg-epagri-red/10' : 'border-gray-300 dark:border-gray-600'}`}>
-                    <Icon name="sun" className="w-5 h-5"/> Claro
-                </button>
-                 <button onClick={() => setTheme('dark')} className={`flex items-center gap-2 p-2 rounded-md border-2 ${theme === 'dark' ? 'border-epagri-red bg-epagri-red/10' : 'border-gray-300 dark:border-gray-600'}`}>
-                    <Icon name="moon" className="w-5 h-5"/> Escuro
-                </button>
-             </div>
-        </div>
-
-      </div>
-    </ScreenWrapper>
-  );
-};
-
-export default ConfiguracoesScreen;
+                <div><label className="block text-sm font-medium
