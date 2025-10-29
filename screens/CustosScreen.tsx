@@ -1,7 +1,7 @@
 // screens/CustosScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { Usuario, Custo } from '../types';
-import { getCustosByUsuario, addCusto, updateCusto, deleteCusto } from '../services/database';
+import { getCustosByUsuario, addCusto, updateCusto, deleteCusto } from '../database';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
 
