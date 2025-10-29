@@ -1,55 +1,63 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Safra, Usuario, Colheita } from '../types';
-import { getSafrasByUsuario, getColheitasBySafra, addColheita } from '../services/database';
+import { getSafrasByUsuario, getColheitasBySafra, addColheita, updateColheita, deleteColheita } from '../services/database';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { formatDate, formatCurrency } from '../utils/calculations';
 import Icon from '../components/Icon';
 
 const ColheitaForm: React.FC<{
     safraId: number;
+    initialData?: Colheita;
     onClose: () => void;
     onSave: () => void;
-}> = ({ safraId, onClose, onSave }) => {
+}> = ({ safraId, initialData, onClose, onSave }) => {
     const [formData, setFormData] = useState({
         safra_id: safraId,
-        data: new Date().toISOString().split('T')[0],
-        quantidade: 0,
-        unidade: 'kg' as 'kg' | 't' | 'saca',
-        preco_unitario: 0,
-        responsavel: '',
+        data: initialData?.data || new Date().toISOString().split('T')[0],
+        quantidade: initialData?.quantidade || 0,
+        unidade: initialData?.unidade || 'kg' as 'kg' | 't' | 'saca',
+        preco_unitario: initialData?.preco_unitario || 0,
+        responsavel: initialData?.responsavel || '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({...prev, [name]: (name === 'quantidade' || name === 'preco_unitario') ? parseFloat(value) : value }));
+        setFormData(prev => ({
+            ...prev, 
+            [name]: (name === 'quantidade' || name === 'preco_unitario') ? parseFloat(value) : value
+        }));
     }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        addColheita(formData);
+        if(initialData) {
+            updateColheita(initialData.id, formData);
+        } else {
+            addColheita(formData);
+        }
         onSave();
     }
-    
+
     const totalReceita = formData.quantidade * formData.preco_unitario;
 
     return (
-         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg m-4">
-                <h2 className="text-2xl font-bold mb-4">Registrar Colheita</h2>
+                <h2 className="text-2xl font-bold mb-4">{initialData ? 'Editar Colheita' : 'Registrar Colheita'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                     <input type="date" name="data" value={formData.data} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                     <div className="grid grid-cols-2 gap-4">
+                    <input type="date" name="data" value={formData.data} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
+                    <div className="grid grid-cols-2 gap-4">
                         <input type="number" name="quantidade" placeholder="Quantidade" value={formData.quantidade} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
                         <select name="unidade" value={formData.unidade} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700">
                             <option value="kg">kg</option>
                             <option value="t">t</option>
                             <option value="saca">saca</option>
                         </select>
-                     </div>
-                     <input type="number" step="0.01" name="preco_unitario" placeholder="Preço Unitário (R$)" value={formData.preco_unitario} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                     <input type="text" name="responsavel" placeholder="Responsável" value={formData.responsavel} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                     
-                     <p className="text-right font-bold">Receita: {formatCurrency(totalReceita)}</p>
+                    </div>
+                    <input type="number" step="0.01" name="preco_unitario" placeholder="Preço Unitário (R$)" value={formData.preco_unitario} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
+                    <input type="text" name="responsavel" placeholder="Responsável" value={formData.responsavel} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
+                    
+                    <p className="text-right font-bold">Receita: {formatCurrency(totalReceita)}</p>
 
                     <div className="flex justify-end gap-4 pt-4">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md">Cancelar</button>
@@ -70,6 +78,7 @@ const ColheitasScreen: React.FC<{
     const [selectedSafraId, setSelectedSafraId] = useState<number | null>(null);
     const [colheitas, setColheitas] = useState<Colheita[]>([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingColheita, setEditingColheita] = useState<Colheita | null>(null);
 
     useEffect(() => {
         const userSafras = getSafrasByUsuario(currentUser);
@@ -84,29 +93,48 @@ const ColheitasScreen: React.FC<{
             setColheitas(getColheitasBySafra(selectedSafraId));
         }
     }, [selectedSafraId]);
-    
+
     const handleSave = () => {
-        showToast("Colheita registrada com sucesso!", "success");
+        showToast(editingColheita ? "Colheita atualizada com sucesso!" : "Colheita registrada com sucesso!", "success");
         setIsFormOpen(false);
-        if(selectedSafraId) {
-            setColheitas(getColheitasBySafra(selectedSafraId));
-        }
+        setEditingColheita(null);
+        if(selectedSafraId) setColheitas(getColheitasBySafra(selectedSafraId));
     };
-    
+
+    const handleEdit = (c: Colheita) => {
+        setEditingColheita(c);
+        setIsFormOpen(true);
+    }
+
+    const handleDelete = (c: Colheita) => {
+        if(window.confirm(`Deseja realmente excluir a colheita de ${c.quantidade} ${c.unidade} em ${formatDate(c.data)}?`)) {
+            deleteColheita(c.id);
+            showToast("Colheita excluída com sucesso!", "success");
+            if(selectedSafraId) setColheitas(getColheitasBySafra(selectedSafraId));
+        }
+    }
+
     const totalReceitaSafra = useMemo(() => {
         return colheitas.reduce((acc, c) => acc + (c.quantidade * c.preco_unitario), 0);
     }, [colheitas]);
 
     return (
         <ScreenWrapper title="Colheitas" onNavigateBack={onNavigateBack}>
-            {isFormOpen && selectedSafraId && <ColheitaForm safraId={selectedSafraId} onClose={() => setIsFormOpen(false)} onSave={handleSave} />}
+            {isFormOpen && selectedSafraId && (
+                <ColheitaForm 
+                    safraId={selectedSafraId} 
+                    initialData={editingColheita || undefined} 
+                    onClose={() => { setIsFormOpen(false); setEditingColheita(null); }} 
+                    onSave={handleSave} 
+                />
+            )}
             <div className="mb-6">
                 <label className="block text-sm font-medium mb-1">Selecione a Safra</label>
                 <select className="block w-full rounded-md dark:bg-gray-700" value={selectedSafraId ?? ''} onChange={(e) => setSelectedSafraId(Number(e.target.value))}>
                     {safras.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
                 </select>
             </div>
-            
+
             <div className="mb-6 flex justify-between items-center">
                 <h3 className="text-xl font-bold">Receita Total: {formatCurrency(totalReceitaSafra)}</h3>
                 <button disabled={!selectedSafraId} onClick={() => setIsFormOpen(true)} className="flex items-center gap-2 bg-epagri-red text-white px-4 py-2 rounded-md font-semibold hover:bg-red-700 disabled:bg-gray-400">
@@ -115,9 +143,17 @@ const ColheitasScreen: React.FC<{
             </div>
 
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-                 <div className="overflow-x-auto">
+                <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead><tr><th className="py-2">Data</th><th>Quantidade</th><th className="text-right">Preço Unit.</th><th className="text-right">Total</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th className="py-2">Data</th>
+                                <th>Quantidade</th>
+                                <th className="text-right">Preço Unit.</th>
+                                <th className="text-right">Total</th>
+                                <th className="text-center">Ações</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             {colheitas.length > 0 ? colheitas.map(c => 
                                 <tr key={c.id}>
@@ -125,9 +161,13 @@ const ColheitasScreen: React.FC<{
                                     <td>{c.quantidade} {c.unidade}</td>
                                     <td className="text-right">{formatCurrency(c.preco_unitario)}</td>
                                     <td className="text-right">{formatCurrency(c.quantidade * c.preco_unitario)}</td>
+                                    <td className="text-center flex justify-center gap-2">
+                                        <button onClick={() => handleEdit(c)} className="px-2 py-1 bg-yellow-400 text-white rounded-md text-sm">Editar</button>
+                                        <button onClick={() => handleDelete(c)} className="px-2 py-1 bg-red-500 text-white rounded-md text-sm">Excluir</button>
+                                    </td>
                                 </tr>
                             ) : (
-                                <tr><td colSpan={4} className="text-center py-4">Nenhuma colheita registrada.</td></tr>
+                                <tr><td colSpan={5} className="text-center py-4">Nenhuma colheita registrada.</td></tr>
                             )}
                         </tbody>
                     </table>
