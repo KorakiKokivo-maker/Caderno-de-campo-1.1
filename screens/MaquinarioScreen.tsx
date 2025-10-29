@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Maquinario, Usuario } from '../types';
-import { getMaquinariosByUsuario, addMaquinario, updateMaquinario, deleteMaquinario } from '../services/database';
+import { getMaquinariosByUsuario, addMaquinario, updateMaquinario, deleteMaquinario } from '../database';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { formatCurrency } from '../utils/calculations';
 import Icon from '../components/Icon';
