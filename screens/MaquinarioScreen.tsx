@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Maquinario, Usuario } from '../types';
-import { getMaquinariosByUsuario, addMaquinario } from '../services/database';
+import { getMaquinariosByUsuario, addMaquinario, updateMaquinario, deleteMaquinario } from '../services/database';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { formatCurrency } from '../utils/calculations';
 import Icon from '../components/Icon';
@@ -9,72 +9,62 @@ const MaquinarioForm: React.FC<{
     currentUser: Usuario;
     onClose: () => void;
     onSave: () => void;
-}> = ({ currentUser, onClose, onSave }) => {
+    editData?: Maquinario;
+}> = ({ currentUser, onClose, onSave, editData }) => {
     const [formData, setFormData] = useState<Omit<Maquinario, 'id'>>({
         usuario_id: currentUser.id,
-        nome: '',
-        tipo: '',
-        valor_inicial: 0,
-        vida_util_anos: 10,
-        vida_util_horas: 10000,
-        valor_residual_percentual: 20,
-        segurado: false,
-        valor_financiado: undefined,
-        num_parcelas: undefined,
-        parcelas_pagas: undefined,
+        nome: editData?.nome || '',
+        descricao: editData?.descricao || '',
+        valor_total: editData?.valor_total || 0,
+        num_parcelas: editData?.num_parcelas || 1,
+        parcelas_pagas: editData?.parcelas_pagas || 0,
+        vida_util_anos: editData?.vida_util_anos || 0,
     });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value, type, checked } = e.target as HTMLInputElement;
-        const isNumber = ['valor_inicial', 'vida_util_anos', 'vida_util_horas', 'valor_residual_percentual', 'valor_financiado', 'num_parcelas', 'parcelas_pagas'].includes(name);
-        setFormData(prev => ({...prev, [name]: type === 'checkbox' ? checked : (isNumber ? (value ? parseFloat(value) : undefined) : value) }));
-    }
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value, type } = e.target;
+        setFormData(prev => ({ ...prev, [name]: type === 'number' ? parseFloat(value) : value }));
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        addMaquinario(formData);
+        if(editData) {
+            updateMaquinario(editData.id, formData);
+        } else {
+            addMaquinario(formData);
+        }
         onSave();
-    }
-    
-    const { valorResidual, depreciacaoAnual } = useMemo(() => {
-        const vr = formData.valor_inicial * (formData.valor_residual_percentual / 100);
-        const da = formData.vida_util_anos > 0 ? (formData.valor_inicial - vr) / formData.vida_util_anos : 0;
-        return { valorResidual: vr, depreciacaoAnual: da };
-    }, [formData.valor_inicial, formData.valor_residual_percentual, formData.vida_util_anos]);
+    };
+
+    const { valorParcela, saldoPagar } = useMemo(() => {
+        const vp = formData.num_parcelas && formData.num_parcelas > 0 ? formData.valor_total / formData.num_parcelas : formData.valor_total;
+        const sp = formData.valor_total - (vp * formData.parcelas_pagas);
+        return { valorParcela: vp, saldoPagar: sp };
+    }, [formData]);
 
     return (
-         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg m-4 max-h-[90vh] overflow-y-auto">
-                <h2 className="text-2xl font-bold mb-4">Adicionar Maquinário</h2>
+                <h2 className="text-2xl font-bold mb-4">{editData ? 'Editar Máquina' : 'Adicionar Máquina'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                     <input type="text" name="nome" placeholder="Nome do Maquinário" value={formData.nome} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                     <input type="text" name="tipo" placeholder="Tipo (ex: Trator, Colheitadeira)" value={formData.tipo} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                     <input type="number" step="0.01" name="valor_inicial" placeholder="Valor de Aquisição (R$)" value={formData.valor_inicial || ''} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                     <div className="grid grid-cols-2 gap-4">
-                        <input type="number" name="vida_util_anos" placeholder="Vida Útil (anos)" value={formData.vida_util_anos || ''} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                        <input type="number" name="vida_util_horas" placeholder="Vida Útil (horas)" value={formData.vida_util_horas || ''} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                     </div>
-                     <input type="number" name="valor_residual_percentual" placeholder="Valor Residual (%)" value={formData.valor_residual_percentual || ''} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                     <div className="flex items-center gap-2"><input type="checkbox" name="segurado" id="segurado" checked={formData.segurado} onChange={handleChange} className="h-4 w-4 rounded" /><label htmlFor="segurado">Possui seguro?</label></div>
-                     
-                     <details className="mt-4 p-3 border rounded-md dark:border-gray-600">
-                        <summary className="font-semibold cursor-pointer">Financiamento (Opcional)</summary>
-                        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                             <input type="number" step="0.01" name="valor_financiado" placeholder="Valor Financiado (R$)" value={formData.valor_financiado || ''} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                             <input type="number" name="num_parcelas" placeholder="Nº de Parcelas" value={formData.num_parcelas || ''} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                             <input type="number" name="parcelas_pagas" placeholder="Parcelas Pagas" value={formData.parcelas_pagas || ''} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
-                        </div>
-                    </details>
+                    <input type="text" name="nome" placeholder="Nome da Máquina" value={formData.nome} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
+                    <textarea name="descricao" placeholder="Descrição (opcional)" value={formData.descricao} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
+                    <input type="number" name="valor_total" placeholder="Valor Total (R$)" value={formData.valor_total} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
+                    <div className="grid grid-cols-2 gap-4">
+                        <input type="number" name="num_parcelas" placeholder="Nº de Parcelas" value={formData.num_parcelas} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
+                        <input type="number" name="parcelas_pagas" placeholder="Parcelas Pagas" value={formData.parcelas_pagas} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
+                    </div>
+                    <input type="number" name="vida_util_anos" placeholder="Vida Útil (anos)" value={formData.vida_util_anos} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700"/>
 
-                     <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-md">
-                        <h4 className="font-semibold">Cálculos Automáticos:</h4>
-                        <p>Valor Residual: <span className="font-bold">{formatCurrency(valorResidual)}</span></p>
-                        <p>Depreciação Anual: <span className="font-bold">{formatCurrency(depreciacaoAnual)}</span></p>
-                     </div>
+                    <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-md">
+                        <h4 className="font-semibold">Cálculos:</h4>
+                        <p>Valor da Parcela: <span className="font-bold">{formatCurrency(valorParcela)}</span></p>
+                        <p>Saldo a Pagar: <span className="font-bold">{formatCurrency(saldoPagar)}</span></p>
+                    </div>
 
                     <div className="flex justify-end gap-4 pt-4">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md">Cancelar</button>
-                        <button type="submit" className="px-4 py-2 bg-epagri-red text-white rounded-md">Salvar</button>
+                        <button type="submit" className="px-4 py-2 bg-epagri-red text-white rounded-md">{editData ? 'Atualizar' : 'Salvar'}</button>
                     </div>
                 </form>
             </div>
@@ -82,48 +72,78 @@ const MaquinarioForm: React.FC<{
     );
 };
 
-const MaquinarioScreen: React.FC<{
-  currentUser: Usuario;
-  onNavigateBack: () => void;
-  showToast: (message: string, type?: 'success' | 'error') => void;
+const MaquinariosScreen: React.FC<{
+    currentUser: Usuario;
+    onNavigateBack: () => void;
+    showToast: (message: string, type?: 'success' | 'error') => void;
 }> = ({ currentUser, onNavigateBack, showToast }) => {
     const [maquinarios, setMaquinarios] = useState<Maquinario[]>([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
-    
+    const [editItem, setEditItem] = useState<Maquinario | null>(null);
+
     const refreshMaquinarios = () => setMaquinarios(getMaquinariosByUsuario(currentUser));
     useEffect(refreshMaquinarios, [currentUser]);
-    
+
     const handleSave = () => {
-        showToast("Maquinário adicionado com sucesso!", "success");
+        showToast(editItem ? "Máquina atualizada com sucesso!" : "Máquina adicionada com sucesso!", "success");
         setIsFormOpen(false);
+        setEditItem(null);
         refreshMaquinarios();
-    }
+    };
+
+    const handleEdit = (item: Maquinario) => {
+        setEditItem(item);
+        setIsFormOpen(true);
+    };
+
+    const handleDelete = (item: Maquinario) => {
+        if(confirm(`Deseja realmente excluir a máquina "${item.nome}"?`)) {
+            deleteMaquinario(item.id);
+            showToast("Máquina excluída com sucesso!", "success");
+            refreshMaquinarios();
+        }
+    };
 
     return (
-        <ScreenWrapper title="Maquinário" onNavigateBack={onNavigateBack}>
-            {isFormOpen && <MaquinarioForm currentUser={currentUser} onClose={() => setIsFormOpen(false)} onSave={handleSave} />}
+        <ScreenWrapper title="Máquinas e Equipamentos" onNavigateBack={onNavigateBack}>
+            {isFormOpen && <MaquinarioForm currentUser={currentUser} onClose={() => { setIsFormOpen(false); setEditItem(null); }} onSave={handleSave} editData={editItem || undefined} />}
+
             <div className="mb-6 flex justify-end">
                 <button onClick={() => setIsFormOpen(true)} className="flex items-center gap-2 bg-epagri-red text-white px-4 py-2 rounded-md font-semibold hover:bg-red-700">
-                    <Icon name="plus" className="w-5 h-5"/> Adicionar Maquinário
+                    <Icon name="plus" className="w-5 h-5"/> Adicionar Máquina
                 </button>
             </div>
 
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-                 <div className="overflow-x-auto">
+                <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead><tr className="border-b dark:border-gray-600"><th className="py-2">Nome</th><th>Tipo</th><th>Pagamento</th><th className="text-right">Valor</th></tr></thead>
+                        <thead>
+                            <tr className="border-b dark:border-gray-600">
+                                <th className="py-2">Nome</th>
+                                <th>Parcelas</th>
+                                <th>Vida Útil</th>
+                                <th className="text-right">Valor Total</th>
+                                <th className="text-center">Ações</th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            {maquinarios.length > 0 ? maquinarios.map(m => 
+                            {maquinarios.length > 0 ? maquinarios.map(m =>
                                 <tr key={m.id} className="border-b dark:border-gray-700">
                                     <td className="py-2">{m.nome}</td>
-                                    <td>{m.tipo}</td>
-                                    <td>
-                                        {m.num_parcelas ? `${m.parcelas_pagas || 0} / ${m.num_parcelas}` : 'Quitado'}
+                                    <td>{m.parcelas_pagas} / {m.num_parcelas || 1}</td>
+                                    <td>{m.vida_util_anos} anos</td>
+                                    <td className="text-right">{formatCurrency(m.valor_total)}</td>
+                                    <td className="text-center flex justify-center gap-2">
+                                        <button onClick={() => handleEdit(m)} className="px-2 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
+                                            <Icon name="pencil" className="w-4 h-4"/>
+                                        </button>
+                                        <button onClick={() => handleDelete(m)} className="px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600">
+                                            <Icon name="trash" className="w-4 h-4"/>
+                                        </button>
                                     </td>
-                                    <td className="text-right">{formatCurrency(m.valor_inicial)}</td>
                                 </tr>
                             ) : (
-                                <tr><td colSpan={4} className="text-center py-4">Nenhum maquinário registrado.</td></tr>
+                                <tr><td colSpan={5} className="text-center py-4">Nenhuma máquina registrada.</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -133,4 +153,4 @@ const MaquinarioScreen: React.FC<{
     );
 };
 
-export default MaquinarioScreen;
+export default MaquinariosScreen;
