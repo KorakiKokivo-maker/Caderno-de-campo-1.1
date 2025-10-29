@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Safra, Usuario, OperacaoCampo, TipoOperacao, Produto } from '../types';
-import { getSafrasByUsuario, getOperacoesBySafra, addOperacao, getProdutos } from '../services/database';
+import { getSafrasByUsuario, getOperacoesBySafra, addOperacao, getProdutos } from '../database';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { formatDate, formatCurrency } from '../utils/calculations';
 import Icon from '../components/Icon';
